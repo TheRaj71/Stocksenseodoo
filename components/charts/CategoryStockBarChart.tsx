@@ -37,10 +37,10 @@ export function CategoryStockBarChart({ data }: CategoryStockBarChartProps) {
               fontSize: '11px',
               fontFamily: 'monospace',
             }}
-            formatter={(value: any, name: string) => {
-              if (name === 'totalQty') return [`Stock: ${value} units`, ''];
-              if (name === 'count') return [`Products: ${value}`, ''];
-              return [value, name];
+            formatter={(value: any, name?: string) => {
+              if (name === 'totalQty') return `Stock: ${value} units`;
+              if (name === 'count') return `Products: ${value}`;
+              return value;
             }}
           />
           <Bar dataKey="totalQty" radius={[4, 4, 0, 0]}>

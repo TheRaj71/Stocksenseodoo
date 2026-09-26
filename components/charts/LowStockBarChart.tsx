@@ -51,10 +51,10 @@ export function LowStockBarChart({ items }: LowStockBarChartProps) {
               fontSize: '11px',
               fontFamily: 'monospace',
             }}
-            formatter={(value: any, name: string) => {
-              if (name === 'stock') return [`Current: ${value}`, ''];
-              if (name === 'min') return [`Min Required: ${value}`, ''];
-              return [value, name];
+            formatter={(value: any, name?: string) => {
+              if (name === 'stock') return `Current: ${value}`;
+              if (name === 'min') return `Min Required: ${value}`;
+              return value;
             }}
           />
           <Bar dataKey="stock" radius={[0, 4, 4, 0]}>

@@ -298,10 +298,10 @@ export function DashboardView() {
             items={alerts.slice(0, 10).map(alert => ({
               name: alert.product_name || 'Unknown',
               sku: alert.sku || '',
-              currentStock: alert.current_stock || 0,
+              currentStock: alert.current_quantity || 0,
               minQuantity: alert.min_quantity || 0,
               urgency: alert.min_quantity > 0 
-                ? Math.min(100, Math.round((1 - (alert.current_stock / alert.min_quantity)) * 100))
+                ? Math.min(100, Math.round((1 - (alert.current_quantity / alert.min_quantity)) * 100))
                 : 0
             }))}
           />
