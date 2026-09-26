@@ -25,6 +25,9 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableEmp
 import { OpsFlowChart } from '@/components/charts/OpsFlowChart';
 import { StockDistributionChart } from '@/components/charts/StockDistributionChart';
 import { LocationCapacityBars } from '@/components/charts/LocationCapacityBars';
+import { CategoryStockBarChart } from '@/components/charts/CategoryStockBarChart';
+import { LowStockBarChart } from '@/components/charts/LowStockBarChart';
+import { DeliveriesStatusChart } from '@/components/charts/DeliveriesStatusChart';
 import { DashboardKPIs, StockAlert } from '@/lib/types';
 import { getDashboardKPIs, getStockAlerts, getRecentStockMovements, getDocumentCountsByStatus } from '@/app/actions/dashboard';
 import { getReceipts } from '@/app/actions/receipts';
@@ -256,6 +259,54 @@ export function DashboardView() {
           </Panel>
         </div>
       </div>
+
+      {/* New Colorful Charts Section with Recharts */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Category Stock Bar Chart */}
+        <Panel
+          title="STOCK QUANTITY BY CATEGORY"
+          subtitle="Total units per category (Bar Chart)"
+          density="compact"
+        >
+          <CategoryStockBarChart data={categoryShares} />
+        </Panel>
+
+        {/* Deliveries Status Pie Chart */}
+        <Panel
+          title="DELIVERY STATUS BREAKDOWN"
+          subtitle="Document status distribution (Pie Chart)"
+          density="compact"
+        >
+          <DeliveriesStatusChart 
+            data={Object.entries(docCounts.DELIVERY || {}).map(([name, value]) => ({
+              name,
+              value: Number(value),
+              color: ''
+            }))}
+          />
+        </Panel>
+      </div>
+
+      {/* Low Stock Alert Bar Chart */}
+      {alerts.length > 0 && (
+        <Panel
+          title="LOW STOCK URGENCY LEVELS"
+          subtitle="Products requiring immediate attention (Color-coded by urgency)"
+          density="compact"
+        >
+          <LowStockBarChart 
+            items={alerts.slice(0, 10).map(alert => ({
+              name: alert.product_name || 'Unknown',
+              sku: alert.sku || '',
+              currentStock: alert.current_stock || 0,
+              minQuantity: alert.min_quantity || 0,
+              urgency: alert.min_quantity > 0 
+                ? Math.min(100, Math.round((1 - (alert.current_stock / alert.min_quantity)) * 100))
+                : 0
+            }))}
+          />
+        </Panel>
+      )}
 
       {/* Action Queue & Segmented Filter */}
       <Panel
