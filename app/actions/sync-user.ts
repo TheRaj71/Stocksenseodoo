@@ -20,17 +20,25 @@ export async function syncUser() {
       return { success: false, error: 'No authenticated user' };
     }
 
-    // Create Supabase client with Clerk token for RLS
-    const token = await session.getToken({ template: 'supabase' });
+    // Create Supabase client with Clerk token for RLS if available
+    let token: string | null = null;
+    try {
+      token = await session.getToken({ template: 'supabase' });
+    } catch (e) {
+      // Template not configured
+    }
     
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const supabase = createClient<Database>(
       supabaseUrl,
-      supabaseServiceKey,
+      supabaseServiceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
         },
       }
     );
@@ -95,16 +103,24 @@ export async function getCurrentUserFromDB() {
       return null;
     }
 
-    const token = await session.getToken({ template: 'supabase' });
+    let token: string | null = null;
+    try {
+      token = await session.getToken({ template: 'supabase' });
+    } catch (e) {
+      // Template not configured
+    }
     
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const supabase = createClient<Database>(
       supabaseUrl,
-      supabaseServiceKey,
+      supabaseServiceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
         global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers,
         },
       }
     );

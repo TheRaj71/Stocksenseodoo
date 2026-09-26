@@ -1,21 +1,17 @@
 import { currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import { syncUser } from '@/app/actions/sync-user';
 import { getDashboardKPIs } from '@/app/actions/dashboard';
 import { AppShell } from '@/components/layout/AppShell';
-import { DashboardView } from '@/components/screens/DashboardView';
+import { SettingsView } from '@/components/screens/SettingsView';
+import { Suspense } from 'react';
 
-export default async function DashboardPage() {
+export default async function SettingsPage() {
   const user = await currentUser();
 
   if (!user) {
     redirect('/sign-in');
   }
 
-  // Ensure user is synced with Supabase User table
-  await syncUser();
-
-  // Load KPI counts for live badges in AppShell
   const kpiRes = await getDashboardKPIs();
   const kpis = kpiRes.success ? kpiRes.data : null;
 
@@ -28,7 +24,10 @@ export default async function DashboardPage() {
 
   return (
     <AppShell counts={counts}>
-      <DashboardView />
+      <Suspense fallback={<div className="p-8 text-center font-mono text-xs text-stone-500">LOADING SETTINGS...</div>}>
+        <SettingsView />
+      </Suspense>
     </AppShell>
   );
 }
+

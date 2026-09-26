@@ -1,22 +1,22 @@
 import { currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import { syncUser } from '@/app/actions/sync-user';
 import { getDashboardKPIs } from '@/app/actions/dashboard';
+import { getCurrentUserFromDB } from '@/app/actions/sync-user';
 import { AppShell } from '@/components/layout/AppShell';
-import { DashboardView } from '@/components/screens/DashboardView';
+import { ProfileView } from '@/components/screens/ProfileView';
 
-export default async function DashboardPage() {
+export default async function ProfilePage() {
   const user = await currentUser();
 
   if (!user) {
     redirect('/sign-in');
   }
 
-  // Ensure user is synced with Supabase User table
-  await syncUser();
+  const [kpiRes, dbUser] = await Promise.all([
+    getDashboardKPIs(),
+    getCurrentUserFromDB(),
+  ]);
 
-  // Load KPI counts for live badges in AppShell
-  const kpiRes = await getDashboardKPIs();
   const kpis = kpiRes.success ? kpiRes.data : null;
 
   const counts = {
@@ -28,7 +28,8 @@ export default async function DashboardPage() {
 
   return (
     <AppShell counts={counts}>
-      <DashboardView />
+      <ProfileView dbUser={dbUser} />
     </AppShell>
   );
 }
+

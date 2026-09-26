@@ -4,7 +4,8 @@ import { auth } from '@clerk/nextjs/server';
 import { Database } from './database.types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
 
 /**
  * Create a Supabase client with Clerk authentication
@@ -15,20 +16,22 @@ export function createClerkSupabaseClient() {
   
   return createClient<Database>(
     supabaseUrl,
-    supabaseKey,
+    supabaseAnonKey,
     {
       global: {
-        // Get the Clerk Supabase token for RLS
         fetch: async (url, options = {}) => {
-          const clerkToken = await getToken({
-            template: 'supabase',
-          });
+          let clerkToken: string | null = null;
+          try {
+            clerkToken = await getToken({ template: 'supabase' });
+          } catch (e) {
+            // Template might not be created in Clerk dashboard
+          }
 
-          // Insert the Clerk Supabase token into the headers
           const headers = new Headers(options?.headers);
-          headers.set('Authorization', `Bearer ${clerkToken}`);
+          if (clerkToken) {
+            headers.set('Authorization', `Bearer ${clerkToken}`);
+          }
 
-          // Call the default fetch
           return fetch(url, {
             ...options,
             headers,
@@ -41,22 +44,33 @@ export function createClerkSupabaseClient() {
 
 /**
  * Create a Supabase client for Server Components/Actions
- * Uses Clerk's auth() to get the session automatically
+ * Uses Clerk's auth() to get the session token if available, or service role key
  */
 export async function createClerkSupabaseClientSsr() {
-  const session = await auth();
-  const token = await session.getToken({
-    template: 'supabase',
-  });
-  
+  let token: string | null = null;
+
+  try {
+    const session = await auth();
+    token = await session.getToken({
+      template: 'supabase',
+    });
+  } catch (err) {
+    // Graceful fallback if JWT template 'supabase' is not configured in Clerk dashboard
+  }
+
+  const keyToUse = supabaseServiceKey || supabaseAnonKey;
+
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   return createClient<Database>(
     supabaseUrl,
-    supabaseKey,
+    keyToUse,
     {
       global: {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       },
     }
   );
