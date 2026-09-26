@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import { useAuth, useSession } from '@clerk/nextjs';
+import { useAuth } from '@clerk/nextjs';
+import { auth } from '@clerk/nextjs/server';
 import { Database } from './database.types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -40,29 +41,21 @@ export function createClerkSupabaseClient() {
 
 /**
  * Create a Supabase client for Server Components/Actions
- * Pass the session from useSession() hook
+ * Uses Clerk's auth() to get the session automatically
  */
-export async function createClerkSupabaseClientSsr(session: any) {
+export async function createClerkSupabaseClientSsr() {
+  const session = await auth();
+  const token = await session.getToken({
+    template: 'supabase',
+  });
+  
   return createClient<Database>(
     supabaseUrl,
     supabaseKey,
     {
       global: {
-        // Get the Clerk Supabase token for RLS
-        fetch: async (url, options = {}) => {
-          const clerkToken = await session?.getToken({
-            template: 'supabase',
-          });
-
-          // Insert the Clerk Supabase token into the headers
-          const headers = new Headers(options?.headers);
-          headers.set('Authorization', `Bearer ${clerkToken}`);
-
-          // Call the default fetch
-          return fetch(url, {
-            ...options,
-            headers,
-          });
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
       },
     }

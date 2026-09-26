@@ -28,12 +28,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <ClerkProvider
           appearance={{
-            baseTheme: undefined,
             variables: {
               colorPrimary: '#2563eb',
               colorBackground: '#ffffff',
-              colorInputBackground: '#ffffff',
-              colorInputText: '#1f2937',
             }
           }}
         >

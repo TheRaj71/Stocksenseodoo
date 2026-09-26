@@ -7,18 +7,26 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
   public: {
     Tables: {
       Category: {
         Row: {
+          description: string | null
           id: string
           name: string
         }
         Insert: {
+          description?: string | null
           id?: string
           name: string
         }
         Update: {
+          description?: string | null
           id?: string
           name?: string
         }
@@ -92,6 +100,8 @@ export type Database = {
           categoryId: string
           createdAt: string
           id: string
+          maxQuantity: number | null
+          minQuantity: number | null
           name: string
           reorderPoint: number
           reorderQty: number
@@ -104,6 +114,8 @@ export type Database = {
           categoryId: string
           createdAt?: string
           id?: string
+          maxQuantity?: number | null
+          minQuantity?: number | null
           name: string
           reorderPoint?: number
           reorderQty?: number
@@ -116,6 +128,8 @@ export type Database = {
           categoryId?: string
           createdAt?: string
           id?: string
+          maxQuantity?: number | null
+          minQuantity?: number | null
           name?: string
           reorderPoint?: number
           reorderQty?: number
@@ -144,7 +158,7 @@ export type Database = {
         Row: {
           contactId: string | null
           createdAt: string
-          destLocationId: string
+          destLocationId: string | null
           doneDate: string | null
           id: string
           notes: string | null
@@ -152,14 +166,15 @@ export type Database = {
           reference: string
           responsibleId: string | null
           scheduleDate: string
-          sourceLocationId: string
+          sourceLocationId: string | null
           status: Database["public"]["Enums"]["DocumentStatus"]
           type: Database["public"]["Enums"]["DocumentType"]
+          validatedAt: string | null
         }
         Insert: {
           contactId?: string | null
           createdAt?: string
-          destLocationId: string
+          destLocationId?: string | null
           doneDate?: string | null
           id?: string
           notes?: string | null
@@ -167,14 +182,15 @@ export type Database = {
           reference: string
           responsibleId?: string | null
           scheduleDate: string
-          sourceLocationId: string
+          sourceLocationId?: string | null
           status?: Database["public"]["Enums"]["DocumentStatus"]
           type: Database["public"]["Enums"]["DocumentType"]
+          validatedAt?: string | null
         }
         Update: {
           contactId?: string | null
           createdAt?: string
-          destLocationId?: string
+          destLocationId?: string | null
           doneDate?: string | null
           id?: string
           notes?: string | null
@@ -182,9 +198,10 @@ export type Database = {
           reference?: string
           responsibleId?: string | null
           scheduleDate?: string
-          sourceLocationId?: string
+          sourceLocationId?: string | null
           status?: Database["public"]["Enums"]["DocumentStatus"]
           type?: Database["public"]["Enums"]["DocumentType"]
+          validatedAt?: string | null
         }
         Relationships: [
           {
@@ -221,24 +238,24 @@ export type Database = {
         Row: {
           id: string
           locationId: string
-          onHand: number
           productId: string
+          quantity: number
           reserved: number
           updatedAt: string
         }
         Insert: {
           id?: string
           locationId: string
-          onHand?: number
           productId: string
+          quantity?: number
           reserved?: number
           updatedAt?: string
         }
         Update: {
           id?: string
           locationId?: string
-          onHand?: number
           productId?: string
+          quantity?: number
           reserved?: number
           updatedAt?: string
         }
@@ -262,26 +279,39 @@ export type Database = {
       StockMoveLine: {
         Row: {
           createdAt: string
+          destLocationId: string | null
           documentId: string
           id: string
           productId: string
           quantity: number
+          sourceLocationId: string | null
         }
         Insert: {
           createdAt?: string
+          destLocationId?: string | null
           documentId: string
           id?: string
           productId: string
           quantity: number
+          sourceLocationId?: string | null
         }
         Update: {
           createdAt?: string
+          destLocationId?: string | null
           documentId?: string
           id?: string
           productId?: string
           quantity?: number
+          sourceLocationId?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "StockMoveLine_destLocationId_fkey"
+            columns: ["destLocationId"]
+            isOneToOne: false
+            referencedRelation: "Location"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "StockMoveLine_documentId_fkey"
             columns: ["documentId"]
@@ -296,20 +326,30 @@ export type Database = {
             referencedRelation: "Product"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "StockMoveLine_sourceLocationId_fkey"
+            columns: ["sourceLocationId"]
+            isOneToOne: false
+            referencedRelation: "Location"
+            referencedColumns: ["id"]
+          },
         ]
       }
       UnitOfMeasure: {
         Row: {
+          abbreviation: string | null
           id: string
           name: string
           symbol: string
         }
         Insert: {
+          abbreviation?: string | null
           id?: string
           name: string
           symbol: string
         }
         Update: {
+          abbreviation?: string | null
           id?: string
           name?: string
           symbol?: string
@@ -375,6 +415,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
+      contact_type: "supplier" | "customer"
       ContactType: "VENDOR" | "CUSTOMER"
       DocumentStatus: "DRAFT" | "WAITING" | "READY" | "DONE" | "CANCELLED"
       DocumentType: "RECEIPT" | "DELIVERY" | "INTERNAL_TRANSFER" | "ADJUSTMENT"
@@ -387,5 +428,132 @@ export type Database = {
   }
 }
 
-export type Tables<T extends keyof Database['public']['Tables']> = Database['public']['Tables'][T]['Row']
-export type Enums<T extends keyof Database['public']['Enums']> = Database['public']['Enums'][T]
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never) = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never) = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never) = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      contact_type: ["supplier", "customer"],
+      ContactType: ["VENDOR", "CUSTOMER"],
+      DocumentStatus: ["DRAFT", "WAITING", "READY", "DONE", "CANCELLED"],
+      DocumentType: ["RECEIPT", "DELIVERY", "INTERNAL_TRANSFER", "ADJUSTMENT"],
+      LocationType: ["INTERNAL", "VENDOR", "CUSTOMER"],
+      Role: ["ADMIN", "INVENTORY_MANAGER", "WAREHOUSE_STAFF"],
+    },
+  },
+} as const
