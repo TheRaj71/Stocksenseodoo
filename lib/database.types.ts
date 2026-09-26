@@ -34,6 +34,7 @@ export type Database = {
       }
       Contact: {
         Row: {
+          active: boolean
           createdAt: string
           email: string | null
           id: string
@@ -42,6 +43,7 @@ export type Database = {
           type: Database["public"]["Enums"]["ContactType"]
         }
         Insert: {
+          active?: boolean
           createdAt?: string
           email?: string | null
           id?: string
@@ -50,6 +52,7 @@ export type Database = {
           type: Database["public"]["Enums"]["ContactType"]
         }
         Update: {
+          active?: boolean
           createdAt?: string
           email?: string | null
           id?: string
@@ -61,6 +64,9 @@ export type Database = {
       }
       Location: {
         Row: {
+          active: boolean
+          barcode: string | null
+          capacity: number | null
           createdAt: string
           id: string
           name: string
@@ -69,6 +75,9 @@ export type Database = {
           warehouseId: string | null
         }
         Insert: {
+          active?: boolean
+          barcode?: string | null
+          capacity?: number | null
           createdAt?: string
           id?: string
           name: string
@@ -77,6 +86,9 @@ export type Database = {
           warehouseId?: string | null
         }
         Update: {
+          active?: boolean
+          barcode?: string | null
+          capacity?: number | null
           createdAt?: string
           id?: string
           name?: string
@@ -103,6 +115,7 @@ export type Database = {
           maxQuantity: number | null
           minQuantity: number | null
           name: string
+          preferredSupplierId: string | null
           reorderPoint: number
           reorderQty: number
           sku: string
@@ -117,6 +130,7 @@ export type Database = {
           maxQuantity?: number | null
           minQuantity?: number | null
           name: string
+          preferredSupplierId?: string | null
           reorderPoint?: number
           reorderQty?: number
           sku: string
@@ -131,6 +145,7 @@ export type Database = {
           maxQuantity?: number | null
           minQuantity?: number | null
           name?: string
+          preferredSupplierId?: string | null
           reorderPoint?: number
           reorderQty?: number
           sku?: string
@@ -143,6 +158,13 @@ export type Database = {
             columns: ["categoryId"]
             isOneToOne: false
             referencedRelation: "Category"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Product_preferredSupplierId_fkey"
+            columns: ["preferredSupplierId"]
+            isOneToOne: false
+            referencedRelation: "Contact"
             referencedColumns: ["id"]
           },
           {

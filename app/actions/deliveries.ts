@@ -164,3 +164,54 @@ export async function getCustomers(): Promise<ApiResponse<Contact[]>> {
     return { success: false, error: 'Failed to fetch customers' };
   }
 }
+
+/**
+ * Set delivery to WAITING status (ready for picking)
+ * Transition: DRAFT → WAITING
+ */
+export async function setDeliveryToWaiting(deliveryId: string): Promise<ApiResponse<StockDocument>> {
+  try {
+    const supabase = await createClerkSupabaseClientSsr();
+    const { data: delivery } = await supabase.from('StockDocument').select('status, lines:StockMoveLine(*)').eq('id', deliveryId).single();
+    if (!delivery) return { success: false, error: 'Delivery not found' };
+    if (delivery.status !== 'DRAFT') return { success: false, error: 'Only draft deliveries can be set to waiting' };
+    if (!delivery.lines || delivery.lines.length === 0) return { success: false, error: 'Delivery must have at least one product line' };
+    const { data, error } = await supabase.from('StockDocument').update({ status: 'WAITING' }).eq('id', deliveryId).select().single();
+    if (error) return { success: false, error: error.message };
+    return { success: true, data, message: 'Delivery set to WAITING status. Ready for picking.' };
+  } catch (error) {
+    return { success: false, error: 'Failed to set delivery to waiting' };
+  }
+}
+
+/**
+ * Set delivery to READY status (picked and ready for packing/shipping)
+ * Transition: WAITING → READY
+ */
+export async function setDeliveryToReady(deliveryId: string): Promise<ApiResponse<StockDocument>> {
+  try {
+    const supabase = await createClerkSupabaseClientSsr();
+    const { data: delivery } = await supabase.from('StockDocument').select('status').eq('id', deliveryId).single();
+    if (!delivery) return { success: false, error: 'Delivery not found' };
+    if (delivery.status !== 'WAITING') return { success: false, error: 'Only waiting deliveries can be set to ready' };
+    const { data, error } = await supabase.from('StockDocument').update({ status: 'READY' }).eq('id', deliveryId).select().single();
+    if (error) return { success: false, error: error.message };
+    return { success: true, data, message: 'Delivery set to READY status. Picked and ready for packing.' };
+  } catch (error) {
+    return { success: false, error: 'Failed to set delivery to ready' };
+  }
+}
+
+/**
+ * Get deliveries by status for pick/pack workflows
+ */
+export async function getDeliveriesByStatus(status: 'DRAFT' | 'WAITING' | 'READY' | 'DONE' | 'CANCELLED'): Promise<ApiResponse<StockDocumentWithDetails[]>> {
+  try {
+    const supabase = await createClerkSupabaseClientSsr();
+    const { data, error } = await supabase.from('StockDocument').select(`*, Contact (*), source_location:Location!StockDocument_sourceLocationId_fkey (id, name, Warehouse (name)), lines:StockMoveLine (*, Product (id, name, sku, UnitOfMeasure (abbreviation)))`).eq('type', 'DELIVERY').eq('status', status).order('scheduleDate', { ascending: true });
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data as unknown as StockDocumentWithDetails[] };
+  } catch (error) {
+    return { success: false, error: 'Failed to fetch deliveries by status' };
+  }
+}

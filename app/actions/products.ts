@@ -12,7 +12,7 @@ import {
   Category,
   UnitOfMeasure,
 } from '@/lib/types';
-import { isValidSKU } from '@/lib/utils';
+import { isValidSKU, generateReference } from '@/lib/utils';
 
 /**
  * Get all products with optional filters
@@ -436,5 +436,133 @@ export async function createUnitOfMeasure(
   } catch (error) {
     console.error('Unexpected error in createUnitOfMeasure:', error);
     return { success: false, error: 'Failed to create unit of measure' };
+  }
+}
+
+/**
+ * Set initial stock for a product at a specific location
+ * Creates a special adjustment document to record the initial stock
+ */
+export async function setInitialStock(
+  productId: string,
+  locationId: string,
+  quantity: number,
+  notes?: string
+): Promise<ApiResponse<void>> {
+  try {
+    if (quantity < 0) {
+      return { success: false, error: 'Initial stock quantity must be positive' };
+    }
+
+    if (quantity === 0) {
+      return { success: true, message: 'No initial stock to set' };
+    }
+
+    const supabase = await createClerkSupabaseClientSsr();
+
+    // Check if product exists
+    const { data: product } = await supabase
+      .from('Product')
+      .select('id, name')
+      .eq('id', productId)
+      .single();
+
+    if (!product) {
+      return { success: false, error: 'Product not found' };
+    }
+
+    // Check if location exists
+    const { data: location } = await supabase
+      .from('Location')
+      .select('id, name')
+      .eq('id', locationId)
+      .single();
+
+    if (!location) {
+      return { success: false, error: 'Location not found' };
+    }
+
+    // Check if stock already exists at this location
+    const { data: existingStock } = await supabase
+      .from('StockItem')
+      .select('quantity')
+      .eq('productId', productId)
+      .eq('locationId', locationId)
+      .single();
+
+    if (existingStock && existingStock.quantity > 0) {
+      return {
+        success: false,
+        error: `Stock already exists at this location (${existingStock.quantity} units). Use stock adjustment instead.`,
+      };
+    }
+
+    // Generate reference for adjustment document
+    const { count } = await supabase
+      .from('StockDocument')
+      .select('*', { count: 'exact', head: true })
+      .eq('type', 'ADJUSTMENT');
+
+    const reference = generateReference('INIT', (count || 0) + 1);
+
+    // Create adjustment document
+    const { data: doc } = await supabase
+      .from('StockDocument')
+      .insert({
+        type: 'ADJUSTMENT',
+        reference,
+        status: 'DRAFT',
+        scheduleDate: new Date().toISOString(),
+        destLocationId: locationId,
+        notes: notes || `Initial stock for ${product.name} at ${location.name}`,
+      })
+      .select()
+      .single();
+
+    if (!doc) {
+      return { success: false, error: 'Failed to create adjustment document' };
+    }
+
+    // Create adjustment line
+    await supabase.from('StockMoveLine').insert({
+      documentId: doc.id,
+      productId,
+      quantity,
+      sourceLocationId: null,
+      destLocationId: locationId,
+    });
+
+    // Create or update stock item
+    if (existingStock) {
+      await supabase
+        .from('StockItem')
+        .update({ quantity })
+        .eq('productId', productId)
+        .eq('locationId', locationId);
+    } else {
+      await supabase.from('StockItem').insert({
+        productId,
+        locationId,
+        quantity,
+      });
+    }
+
+    // Mark adjustment as done
+    await supabase
+      .from('StockDocument')
+      .update({
+        status: 'DONE',
+        validatedAt: new Date().toISOString(),
+        doneDate: new Date().toISOString(),
+      })
+      .eq('id', doc.id);
+
+    return {
+      success: true,
+      message: `Initial stock of ${quantity} units set for ${product.name} at ${location.name}`,
+    };
+  } catch (error) {
+    console.error('Unexpected error in setInitialStock:', error);
+    return { success: false, error: 'Failed to set initial stock' };
   }
 }
