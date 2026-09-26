@@ -151,6 +151,73 @@ Open [http://localhost:3000](http://localhost:3000) (or `http://localhost:3001`)
 
 ---
 
+## 🚢 Deploying to Render
+
+You can deploy StockSense to [Render](https://render.com) using either the **Render Blueprint (Recommended)** or as a **Manual Web Service**.
+
+### Option A: Render Blueprint (1-Click Automated Setup)
+
+The repository includes a production-ready [`render.yaml`](file:///render.yaml) configuration:
+
+1. Log in to your [Render Dashboard](https://dashboard.render.com/).
+2. Click **New +** → **Blueprint**.
+3. Connect your GitHub repository (`TheRaj71/Stocksenseodoo`) and select the `feature-frontend` (or `master`) branch.
+4. Render will detect `render.yaml` and configure the Web Service automatically.
+5. In the **Environment Variables** prompt, fill in your Clerk and Supabase secret keys:
+   - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`
+   - `CLERK_SECRET_KEY`
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+   - `SUPABASE_SERVICE_ROLE_KEY`
+   - `DATABASE_URL` (optional direct connection string)
+6. Click **Apply**. Render will build and deploy the application.
+
+---
+
+### Option B: Manual Web Service Deployment
+
+1. On the [Render Dashboard](https://dashboard.render.com/), click **New +** → **Web Service**.
+2. Connect your GitHub repository (`TheRaj71/Stocksenseodoo`).
+3. Configure the following service settings:
+   - **Name**: `stocksense-ims`
+   - **Runtime**: `Node`
+   - **Branch**: `feature-frontend` (or `master`)
+   - **Build Command**: `npm install && npm run build`
+   - **Start Command**: `npm start`
+   - **Health Check Path**: `/api/health`
+   - **Instance Type**: `Free` or `Starter`
+4. Under **Environment Variables**, add the following keys:
+
+| Key | Value / Example | Notes |
+| :--- | :--- | :--- |
+| `NODE_VERSION` | `20.18.0` | Node.js runtime version |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | `pk_test_...` or `pk_live_...` | From Clerk Dashboard → API Keys |
+| `CLERK_SECRET_KEY` | `sk_test_...` or `sk_live_...` | From Clerk Dashboard → API Keys |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_URL` | `/sign-in` | Path for authentication |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_URL` | `/sign-up` | Path for signup |
+| `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` | `/` | Post-auth landing |
+| `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL` | `/` | Post-auth landing |
+| `NEXT_PUBLIC_SUPABASE_URL` | `https://xcwypudfijavfstpmpbh.supabase.co` | Supabase Project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | `eyJhbGciOi...` | Supabase anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | `eyJhbGciOi...` | Supabase service_role key |
+| `DATABASE_URL` | `postgresql://postgres:...@...:5432/postgres` | Direct PostgreSQL URL |
+| `DIRECT_URL` | `postgresql://postgres:...@...:5432/postgres` | Direct session pooler URL |
+
+5. Click **Create Web Service**.
+
+---
+
+### 🔑 Post-Deployment Clerk Configuration
+
+Once your Render app is deployed (e.g. `https://stocksense-ims.onrender.com`):
+
+1. Open the [Clerk Dashboard](https://dashboard.clerk.com/) → **Paths** & **Domains**.
+2. Under **Production instance** (or Development instance if testing):
+   - Add your Render domain (`https://stocksense-ims.onrender.com`) to the **Allowed Redirect URLs** and **Home URL**.
+3. (Optional) Set up the Clerk Webhook endpoint pointing to `https://stocksense-ims.onrender.com/api/webhooks/clerk` to auto-sync user profiles with PostgreSQL.
+
+---
+
 ## 🔒 Security & Permissions
 
 All database operations enforce PostgreSQL **Row Level Security (RLS)**:

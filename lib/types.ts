@@ -8,18 +8,23 @@ export type ProductUpdate = Database['public']['Tables']['Product']['Update'];
 
 export type Category = Database['public']['Tables']['Category']['Row'];
 export type CategoryInsert = Database['public']['Tables']['Category']['Insert'];
+export type CategoryUpdate = Database['public']['Tables']['Category']['Update'];
 
 export type UnitOfMeasure = Database['public']['Tables']['UnitOfMeasure']['Row'];
 export type UnitOfMeasureInsert = Database['public']['Tables']['UnitOfMeasure']['Insert'];
+export type UnitOfMeasureUpdate = Database['public']['Tables']['UnitOfMeasure']['Update'];
 
 export type Warehouse = Database['public']['Tables']['Warehouse']['Row'];
 export type WarehouseInsert = Database['public']['Tables']['Warehouse']['Insert'];
+export type WarehouseUpdate = Database['public']['Tables']['Warehouse']['Update'];
 
 export type Location = Database['public']['Tables']['Location']['Row'];
 export type LocationInsert = Database['public']['Tables']['Location']['Insert'];
+export type LocationUpdate = Database['public']['Tables']['Location']['Update'];
 
 export type Contact = Database['public']['Tables']['Contact']['Row'];
 export type ContactInsert = Database['public']['Tables']['Contact']['Insert'];
+export type ContactUpdate = Database['public']['Tables']['Contact']['Update'];
 
 export type StockDocument = Database['public']['Tables']['StockDocument']['Row'];
 export type StockDocumentInsert = Database['public']['Tables']['StockDocument']['Insert'];

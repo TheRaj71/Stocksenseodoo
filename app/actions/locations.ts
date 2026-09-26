@@ -229,7 +229,7 @@ export async function getLocationStats(locationId: string): Promise<ApiResponse<
     // Get location details
     const { data: location } = await supabase
       .from('Location')
-      .select('capacity')
+      .select('id, name')
       .eq('id', locationId)
       .single();
 
@@ -242,18 +242,12 @@ export async function getLocationStats(locationId: string): Promise<ApiResponse<
     const uniqueProducts = new Set(stockItems?.map(item => item.productId) || []);
     const totalQuantity = stockItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
-    // Calculate occupancy percentage (if capacity is defined)
-    let occupancyPercentage = 0;
-    if (location?.capacity && location.capacity > 0) {
-      occupancyPercentage = Math.round((totalQuantity / location.capacity) * 100);
-    }
-
     return {
       success: true,
       data: {
         totalProducts: uniqueProducts.size,
         totalQuantity,
-        occupancyPercentage,
+        occupancyPercentage: 0,
       },
     };
   } catch (error) {
@@ -309,7 +303,7 @@ export async function getLocationsWithStats(): Promise<ApiResponse<Array<Locatio
 }
 
 /**
- * Get available locations for stock placement (locations with available capacity)
+ * Get available locations for stock placement
  */
 export async function getAvailableLocations(warehouseId?: string): Promise<ApiResponse<Location[]>> {
   try {
@@ -324,8 +318,7 @@ export async function getAvailableLocations(warehouseId?: string): Promise<ApiRe
           name,
           shortCode
         )
-      `)
-      .eq('active', true);
+      `);
 
     if (warehouseId) {
       query = query.eq('warehouseId', warehouseId);
@@ -338,31 +331,7 @@ export async function getAvailableLocations(warehouseId?: string): Promise<ApiRe
       return { success: false, error: error.message };
     }
 
-    // Filter locations with available capacity
-    const availableLocations: Location[] = [];
-    
-    for (const location of locations) {
-      // If no capacity limit, location is available
-      if (!location.capacity) {
-        availableLocations.push(location);
-        continue;
-      }
-
-      // Check current stock quantity in this location
-      const { data: stockItems } = await supabase
-        .from('StockItem')
-        .select('quantity')
-        .eq('locationId', location.id);
-
-      const totalQuantity = stockItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
-
-      // Add location if has available capacity
-      if (totalQuantity < location.capacity) {
-        availableLocations.push(location);
-      }
-    }
-
-    return { success: true, data: availableLocations };
+    return { success: true, data: locations || [] };
   } catch (error) {
     console.error('Unexpected error in getAvailableLocations:', error);
     return { success: false, error: 'Failed to fetch available locations' };

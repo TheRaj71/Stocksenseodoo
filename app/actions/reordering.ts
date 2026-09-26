@@ -91,20 +91,8 @@ export async function getProductsBelowReorderPoint(): Promise<ApiResponse<Produc
         const targetQuantity = product.maxQuantity || product.minQuantity * 2;
         const quantityToOrder = Math.max(targetQuantity - currentQuantity, 0);
 
-        // Get preferred supplier if defined
+        // Get first vendor contact as default supplier if available
         let preferredSupplier: Contact | undefined;
-        if (product.preferredSupplierId) {
-          const { data: supplier } = await supabase
-            .from('Contact')
-            .select('*')
-            .eq('id', product.preferredSupplierId)
-            .eq('type', 'VENDOR')
-            .single();
-
-          if (supplier) {
-            preferredSupplier = supplier;
-          }
-        }
 
         productsBelowReorder.push({
           product,
@@ -156,7 +144,6 @@ export async function generatePurchaseOrders(): Promise<ApiResponse<PurchaseOrde
       .from('Contact')
       .select('*')
       .eq('type', 'VENDOR')
-      .eq('active', true)
       .limit(1)
       .single();
 
