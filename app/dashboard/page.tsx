@@ -1,5 +1,6 @@
 import { currentUser } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import { syncUser } from '@/app/actions/sync-user';
 
 export default async function DashboardPage() {
   const user = await currentUser();
@@ -7,6 +8,9 @@ export default async function DashboardPage() {
   if (!user) {
     redirect('/sign-in');
   }
+
+  // Sync user to Supabase on dashboard visit
+  await syncUser();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -50,17 +54,21 @@ export default async function DashboardPage() {
         </div>
 
         <div className="mt-8 rounded-lg border border-gray-200 bg-white p-6">
-          <h3 className="text-lg font-semibold text-gray-900">Coming Soon</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Database & Authentication Setup Complete! ✅</h3>
           <p className="mt-2 text-gray-600">
-            The full inventory management system is being built. Features include:
+            Your StockSense system is ready with:
           </p>
           <ul className="mt-4 space-y-2 text-gray-600">
-            <li>• Multi-warehouse & location management</li>
-            <li>• Product catalog with categories & UoM</li>
-            <li>• Receipts, Deliveries, Internal Transfers</li>
-            <li>• Stock adjustments & complete audit trail</li>
-            <li>• Real-time stock tracking with alerts</li>
+            <li>✅ Complete database schema with 10 tables</li>
+            <li>✅ Row Level Security (RLS) policies enabled</li>
+            <li>✅ Clerk + Supabase authentication integrated</li>
+            <li>✅ Seed data loaded (categories, warehouses, locations)</li>
+            <li>✅ User auto-sync on login</li>
+            <li>✅ TypeScript types generated</li>
           </ul>
+          <p className="mt-4 text-sm text-gray-500">
+            Next: Start building the inventory management UI features!
+          </p>
         </div>
       </main>
     </div>
